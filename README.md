@@ -1,2 +1,2 @@
 # **<span style="color: #197de1ff;">Car accident detection and emergency alert</span>**
-Detect a car crash automatically (using sensors), collect GPS + driver data, and send an emergency alert (SMS/HTTP/call) with coordinates and the relevant data to emergency contacts / services.
+### Détecter automatiquement les accidents de la route (à l'aide de capteurs), collecter les données GPS et celles du conducteur, et envoyer une alerte d'urgence (SMS/HTTP/appel) avec les coordonnées et les données pertinentes aux contacts/services d'urgence.
