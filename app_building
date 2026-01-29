@@ -1,0 +1,50 @@
+## Phase 1 : Define app requirments (Before coding)
+ - Dashboard screen
+ - Real-time data update
+ - Visual accident alert
+ Data app will read from Cloud:
+   > speed: ...
+   > accident: true
+   > status: "..."
+   > lastUpdate: 00000000
+   > location: ...
+
+## Phase 2 : UI/UX Design (Before coding)
+   - Splash screen 
+   - Dashboard screen
+      -- Status indicator:  Green / Red
+      -- Speed gauge
+      -- Accident alert banner
+      -- Last update time
+      -- location
+        ( Draw design in figma )
+
+## Phase 3 : GitHub Repo Setup
+
+  accident-detection-iot-app/
+    ├── app/
+    │   ├── lib/
+    │   ├── pubspec.yaml
+    │   └── README.md
+    ├── docs/
+    │   ├── app_requirements.md
+    │   ├── ui_design.md
+    │   └── architecture.md
+    └── README.md
+
+## Phase 4 : Create Flutter App Skeleton (1 day)
+Tasks:
+
+  Create Flutter app
+  Set up:
+     - Theme (dark mode recommended 🚗)
+     - Navigation
+  Add empty screens:
+     - SplashScreen
+     - DashboardScreen
+
+## Phase 5 : Dashborad UI Implementation 
+ the goal here is that the Dashboard looks complete even with fake data.
+
+
+
