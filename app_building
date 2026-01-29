@@ -1,0 +1,20 @@
+## Phase 1 : Define app requirments (Before coding)
+ - Dashboard screen
+ - Real-time data update
+ - Visual accident alert
+ Data app will read from Cloud:
+   > speed: ...
+   > accident: true
+   > status: "..."
+   > lastUpdate: 00000000
+   > location: ...
+
+## Phase 2 : UI/UX Design (Before coding)
+   - Splash screen 
+   - Dashboard screen
+      -- Status indicator:  Green / Red
+      -- Speed gauge
+      -- Accident alert banner
+      -- Last update time
+      -- location
+        ( Draw design in figma )
