@@ -1,6 +1,6 @@
 /*
- * SMART ACCIDENT DETECTION - VIBRATION FIX
- * Updates: LoRa bypass, Motor Grace Period, Higher Threshold
+ * SMART ACCIDENT DETECTION - ROBUST VERSION
+ * Updates: Prevents false alarms when sensors are unplugged.
  */
 
 #include <Wire.h>
@@ -15,9 +15,8 @@
 #include "MAX30100_PulseOximeter.h" 
 
 // ================= USER CONFIGURATION =================
-const char* PHONE_NUMBER = "+212600000000"; 
-// INCREASED THRESHOLD: 40.0 m/s^2 (approx 4G) to ignore vibration
-const float CRASH_THRESHOLD = 20.0;         
+const char* PHONE_NUMBER = "+212779463279"; 
+const float CRASH_THRESHOLD = 30.0;         // Set to 30.0 for actual car testing
 const int   EMERGENCY_TIMER = 10;           
 const long  LORA_FREQUENCY  = 433E6;        
 
@@ -54,11 +53,10 @@ HardwareSerial SerialGPS(2);
 
 // ================= VARIABLES =================
 bool crashDetected = false;
-bool systemSafe = true;
+bool mpuReady = false;      // <--- NEW SAFETY FLAG
 bool poxBegin = false;
 bool sdReady = false;
 unsigned long crashStartTime = 0;
-// NEW: Grace period timer
 unsigned long ignoreSensorsUntil = 0; 
 
 void onBeatDetected() {
@@ -73,7 +71,7 @@ void setup() {
   pinMode(PIN_CAM_TRIG, OUTPUT);
   digitalWrite(PIN_CAM_TRIG, LOW);
   
-  pinMode(SD_CS_PIN, OUTPUT); digitalWrite(SD_CS_PIN, LOW);
+  pinMode(SD_CS_PIN, OUTPUT); digitalWrite(SD_CS_PIN, HIGH); // Disable SD
   pinMode(LORA_CS_PIN, OUTPUT); digitalWrite(LORA_CS_PIN, HIGH);
 
   pinMode(MOT_A1, OUTPUT); pinMode(MOT_A2, OUTPUT);
@@ -85,15 +83,16 @@ void setup() {
   lcd.setCursor(0,0); lcd.print("SYSTEM STARTUP");
   delay(1000);
 
-  // MPU6050
+  // MPU6050 CHECK
   lcd.clear(); lcd.print("ACCEL: ");
   if(mpu.begin()) {
     mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-    // NEW: Set filter to reduce engine vibration noise
     mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+    mpuReady = true;  // <--- WE ONLY ENABLE CRASH LOGIC IF SENSOR IS FOUND
     lcd.print("OK");
   } else {
-    lcd.print("FAIL"); // Warning only
+    lcd.print("MISSING"); 
+    Serial.println("MPU6050 Not Found - Crash Logic Disabled");
   }
   delay(500);
 
@@ -117,14 +116,13 @@ void setup() {
   }
   delay(500);
 
-  // LoRa (MODIFIED: BYPASS IF FAIL)
+  // LoRa
   lcd.setCursor(0,1); lcd.print("LoRa: ");
   LoRa.setPins(LORA_CS_PIN, LORA_RST_PIN, LORA_DIO0);
   if(LoRa.begin(LORA_FREQUENCY)) {
     lcd.print("OK");
   } else {
     lcd.print("FAIL (SKIP)"); 
-    Serial.println("LoRa Failed - Continuing anyway...");
   }
   delay(1000);
 
@@ -137,10 +135,9 @@ void setup() {
   lcd.print("SYSTEM READY");
   digitalWrite(PIN_BUZZ, HIGH); delay(100); digitalWrite(PIN_BUZZ, LOW);
   
-  // START MOTORS & SET GRACE PERIOD
+  // START MOTORS
   lcd.setCursor(0,1); lcd.print("MOTORS ON...");
   driveForward(); 
-  // IMPORTANT: Ignore crash sensors for 3000ms (3 seconds) after start
   ignoreSensorsUntil = millis() + 3000; 
 }
 
@@ -151,11 +148,10 @@ void loop() {
     gps.encode(SerialGPS.read());
   }
 
-  // CRASH DETECTION (With Safety Checks)
+  // --- CRASH DETECTION (Only runs if MPU was found) ---
   static unsigned long lastCrashCheck = 0;
-  // Check 1: Is the time > 50ms since last check?
-  // Check 2: Is the "Grace Period" over? (millis() > ignoreSensorsUntil)
-  if (!crashDetected && (millis() - lastCrashCheck > 50) && (millis() > ignoreSensorsUntil)) {
+  
+  if (mpuReady && !crashDetected && (millis() - lastCrashCheck > 50) && (millis() > ignoreSensorsUntil)) {
     lastCrashCheck = millis();
     
     sensors_event_t a, g, temp;
@@ -163,7 +159,7 @@ void loop() {
     
     float totalForce = sqrt(sq(a.acceleration.x) + sq(a.acceleration.y) + sq(a.acceleration.z));
     
-    // DEBUG: Uncomment this line to see the Vibration Value in Serial Monitor
+    // Uncomment to see force values
     // Serial.print("Force: "); Serial.println(totalForce);
 
     if (totalForce > CRASH_THRESHOLD) {
@@ -171,6 +167,7 @@ void loop() {
       triggerCrash();
     }
   }
+  // ----------------------------------------------------
 
   if (crashDetected) {
     handleEmergency();
@@ -241,7 +238,6 @@ void cancelAlert() {
   delay(2000);
   lcd.clear(); lcd.print("SYSTEM READY");
   driveForward(); 
-  // Reset Grace Period so motors don't re-trigger crash immediately
   ignoreSensorsUntil = millis() + 3000; 
 }
 
@@ -257,12 +253,12 @@ void sendAlerts() {
   String mapLink = "http://maps.google.com/?q=" + String(lat, 6) + "," + String(lng, 6);
   String alertMsg = "SOS! Crash Detected.\nLoc: " + mapLink + "\nHR: " + String(hr) + " BPM\nOxy: " + String(spo2) + "%";
 
-  // Try LoRa (If it failed init, this might do nothing, which is fine)
+  // LoRa
   lcd.setCursor(0,1); lcd.print("LoRa...");
   LoRa.beginPacket();
   LoRa.print(alertMsg);
   LoRa.endPacket();
-  delay(500);
+  delay(2000);
 
   // GSM
   lcd.setCursor(0,1); lcd.print("GSM SMS...");
