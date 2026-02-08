@@ -1,4 +1,7 @@
-# Rescue Dashboard App
-Built with MIT App Inventor.
-- Status: UI Skeleton Created
-- Purpose: Receives SMS from ESP32, parses GPS/Pulse data, and displays location.
+## 📱 Mobile Dashboard (Phase 2)
+**Status:** Prototype Complete (V1.0)
+**Tools:** MIT App Inventor
+**Features:**
+- [x] Listens for incoming SMS from ESP32.
+- [x] Parses raw data string (Lat, Lon, Pulse, Status).
+- [x] auto-generates Google Maps link for rescue.
